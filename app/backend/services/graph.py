@@ -1,14 +1,19 @@
 import asyncio
 import json
+import logging
 import re
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END, StateGraph
 
 from app.backend.services.agent_service import create_agent_function
+
+_log = logging.getLogger(__name__)
 from src.agents.portfolio_manager import portfolio_management_agent
 from src.agents.risk_manager import risk_management_agent
 from src.main import start
+from src.utils.company_context import build_company_context
 from src.utils.analysts import ANALYST_CONFIG
+from src.utils.langfuse_callback import get_langfuse_callbacks
 from src.graph.state import AgentState
 
 
@@ -153,12 +158,36 @@ def run_graph(
     start date, end date, show reasoning, model name,
     and model provider.
     """
+    _log.info("Stock Input (graph): building state for tickers=%s start_date=%s end_date=%s", tickers, start_date, end_date)
+    api_key = None
+    if request is not None and getattr(request, "api_keys", None):
+        api_key = request.api_keys.get("FINANCIAL_DATASETS_API_KEY")
+    company_context = build_company_context(tickers, api_key=api_key)
+    for t in tickers:
+        ctx = company_context.get(t, {})
+        if ctx.get("name"):
+            _log.info("  company_context %s: name=%s sector=%s industry=%s", t, ctx.get("name"), ctx.get("sector"), ctx.get("industry"))
+        else:
+            _log.warning("  company_context %s: no data (get_company_facts returned none or empty)", t)
+    # Build a short summary of companies for the initial message so downstream nodes see context
+    company_lines = []
+    for t in tickers:
+        ctx = company_context.get(t, {})
+        name = ctx.get("name") or t
+        sector = ctx.get("sector") or "—"
+        industry = ctx.get("industry") or "—"
+        company_lines.append(f"  • {t}: {name} (Sector: {sector}, Industry: {industry})")
+    companies_summary = "\n".join(company_lines) if company_lines else "  (no company details)"
+    initial_content = (
+        "Make trading decisions based on the provided data.\n\n"
+        "Companies under analysis:\n" + companies_summary
+    )
+    callbacks = get_langfuse_callbacks(tags=["hedge-fund", "web"])
+    config = {"callbacks": callbacks} if callbacks else {}
     return graph.invoke(
         {
             "messages": [
-                HumanMessage(
-                    content="Make trading decisions based on the provided data.",
-                )
+                HumanMessage(content=initial_content),
             ],
             "data": {
                 "tickers": tickers,
@@ -166,6 +195,7 @@ def run_graph(
                 "start_date": start_date,
                 "end_date": end_date,
                 "analyst_signals": {},
+                "company_context": company_context,
             },
             "metadata": {
                 "show_reasoning": False,
@@ -174,6 +204,7 @@ def run_graph(
                 "request": request,  # Pass the request for agent-specific model access
             },
         },
+        config=config,
     )
 
 
@@ -190,3 +221,17 @@ def parse_hedge_fund_response(response):
     except Exception as e:
         print(f"Unexpected error while parsing response: {e}\nResponse: {repr(response)}")
         return None
+
+
+def parse_portfolio_manager_content(content: str) -> tuple[dict, str]:
+    """
+    Parse portfolio manager last message content.
+    New format: {"decisions": {...}, "report": "..."}. Old format: {ticker: decision}.
+    Returns (decisions, report).
+    """
+    parsed = parse_hedge_fund_response(content)
+    if not parsed or not isinstance(parsed, dict):
+        return {}, ""
+    if "decisions" in parsed:
+        return parsed.get("decisions", {}), (parsed.get("report") or "")
+    return parsed, ""

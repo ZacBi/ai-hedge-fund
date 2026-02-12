@@ -112,4 +112,20 @@ class ApiKey(Base):
     last_used = Column(DateTime(timezone=True), nullable=True)  # Track usage
 
 
+class LLMModel(Base):
+    """Table to store available LLM models (cloud + custom). Replaces static api_models.json for the API."""
+    __tablename__ = "llm_models"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    display_name = Column(String(200), nullable=False)
+    model_name = Column(String(200), nullable=False, index=True)  # e.g. "gpt-4.1", "openai/gpt-4.1"
+    provider = Column(String(80), nullable=False, index=True)  # OpenAI, OpenRouter, Anthropic, etc.
+    sort_order = Column(Integer, nullable=True, default=0)  # Lower first
+    is_enabled = Column(Boolean, default=True)
+    source = Column(String(40), nullable=True)  # 'static' | 'custom' | 'openrouter'
+
+
  

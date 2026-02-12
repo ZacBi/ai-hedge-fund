@@ -42,13 +42,22 @@ This project is for **educational and research purposes only**.
 By using this software, you agree to use it solely for learning purposes.
 
 ## Table of Contents
-- [How to Install](#how-to-install)
-- [How to Run](#how-to-run)
-  - [⌨️ Command Line Interface](#️-command-line-interface)
-  - [🖥️ Web Application](#️-web-application)
-- [How to Contribute](#how-to-contribute)
-- [Feature Requests](#feature-requests)
-- [License](#license)
+- [AI Hedge Fund](#ai-hedge-fund)
+  - [Disclaimer](#disclaimer)
+  - [Table of Contents](#table-of-contents)
+  - [How to Install](#how-to-install)
+    - [1. Clone the Repository](#1-clone-the-repository)
+    - [2. Set up API keys](#2-set-up-api-keys)
+  - [Prompt management](#prompt-management)
+  - [How to Run](#how-to-run)
+    - [⌨️ Command Line Interface](#️-command-line-interface)
+      - [Quick Start](#quick-start)
+      - [Run the AI Hedge Fund](#run-the-ai-hedge-fund)
+      - [Run the Backtester](#run-the-backtester)
+    - [🖥️ Web Application](#️-web-application)
+  - [How to Contribute](#how-to-contribute)
+  - [Feature Requests](#feature-requests)
+  - [License](#license)
 
 ## How to Install
 
@@ -82,6 +91,10 @@ FINANCIAL_DATASETS_API_KEY=your-financial-datasets-api-key
 
 **Financial Data**: Data for AAPL, GOOGL, MSFT, NVDA, and TSLA is free and does not require an API key. For any other ticker, you will need to set the `FINANCIAL_DATASETS_API_KEY` in the .env file.
 
+### Prompt management
+
+Analyst and portfolio-manager prompts are defined in `src/prompts/` and can be edited and versioned in [Langfuse](https://langfuse.com) when configured. See [docs/prompts.md](docs/prompts.md) for how to run the sync script and manage prompts in the Langfuse UI.
+
 ## How to Run
 
 ### ⌨️ Command Line Interface
@@ -92,36 +105,36 @@ You can run the AI Hedge Fund directly via terminal. This approach offers more g
 
 #### Quick Start
 
-1. Install Poetry (if not already installed):
+1. Install uv (if not already installed):
 ```bash
-curl -sSL https://install.python-poetry.org | python3 -
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 2. Install dependencies:
 ```bash
-poetry install
+uv sync
 ```
 
 #### Run the AI Hedge Fund
 ```bash
-poetry run python src/main.py --ticker AAPL,MSFT,NVDA
+uv run python src/main.py --ticker AAPL,MSFT,NVDA
 ```
 
 You can also specify a `--ollama` flag to run the AI hedge fund using local LLMs.
 
 ```bash
-poetry run python src/main.py --ticker AAPL,MSFT,NVDA --ollama
+uv run python src/main.py --ticker AAPL,MSFT,NVDA --ollama
 ```
 
 You can optionally specify the start and end dates to make decisions over a specific time period.
 
 ```bash
-poetry run python src/main.py --ticker AAPL,MSFT,NVDA --start-date 2024-01-01 --end-date 2024-03-01
+uv run python src/main.py --ticker AAPL,MSFT,NVDA --start-date 2024-01-01 --end-date 2024-03-01
 ```
 
 #### Run the Backtester
 ```bash
-poetry run python src/backtester.py --ticker AAPL,MSFT,NVDA
+uv run python src/backtester.py --ticker AAPL,MSFT,NVDA
 ```
 
 **Example Output:**

@@ -187,9 +187,17 @@ export function StockAnalyzerNode({
       }
     }
     
-    // Convert tickers to array    
-    const tickerList = tickers.split(',').map(t => t.trim());
-    
+    // Convert tickers to array
+    const tickerList = tickers.split(',').map(t => t.trim()).filter(Boolean);
+    console.log('[Stock Input] Run triggered', {
+      tickers: tickerList,
+      startDate,
+      endDate,
+      runMode,
+      agentCount: agentNodes.length,
+      initialCash: runMode === 'backtest' ? parseFloat(initialCash) || 100000 : undefined,
+    });
+
     // Check if we're in backtest mode
     if (runMode === 'backtest') {
       // Use the flow connection hook to run the backtest with selected dates

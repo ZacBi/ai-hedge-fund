@@ -86,44 +86,44 @@ if %errorlevel% neq 0 (
                     echo.
                     echo %INFO% SOLUTION: Please try one of these options:
                     echo %INFO% 1. Run this script as Administrator
-                    echo %INFO% 2. Manual install: curl -sSL https://install.python-poetry.org -o install-poetry.py
-                    echo %INFO% 3. Then run: python install-poetry.py
+                    echo %INFO% 2. Manual install: curl -LsSf https://astral.sh/uv/install.sh | sh
+                    echo %INFO% 3. Then restart your terminal
                     echo.
                     pause
                     exit /b 1
                 )
             )
             REM Clean up the temporary installer file
-            del "%TEMP%\install-poetry.py" >nul 2>&1
+            REM No cleanup needed for uv installation
         )
-        echo %SUCCESS% Poetry installed successfully!
+        echo %SUCCESS% uv installed successfully!
         echo %INFO% Refreshing environment...
         call refreshenv >nul 2>&1 || echo %WARNING% Could not refresh environment.
         
-        REM Check if Poetry is now available
-        where poetry >nul 2>&1
+        REM Check if uv is now available
+        where uv >nul 2>&1
         if %errorlevel% neq 0 (
-            echo %WARNING% Poetry was installed but is not yet available in PATH.
-            echo %INFO% You may need to restart your terminal or add Poetry to your PATH.
-            echo %INFO% Poetry is typically installed to: %APPDATA%\Python\Scripts
+            echo %WARNING% uv was installed but is not yet available in PATH.
+            echo %INFO% You may need to restart your terminal.
+            echo %INFO% uv is typically installed to: %USERPROFILE%\.cargo\bin
             echo %INFO% You can also try running the script again after restarting your terminal.
             pause
             exit /b 1
         )
-        echo %SUCCESS% Poetry is now available and ready to use!
+        echo %SUCCESS% uv is now available and ready to use!
     ) else (
-        echo %ERROR% Poetry is required to run this application.
-        echo %ERROR% Please install Poetry manually using one of these methods:
-        echo %INFO% 1. Download installer: curl -sSL https://install.python-poetry.org -o install-poetry.py
-        echo %INFO% 2. Run installer: python install-poetry.py
+        echo %ERROR% uv is required to run this application.
+        echo %ERROR% Please install uv manually using one of these methods:
+        echo %INFO% 1. PowerShell: irm https://astral.sh/uv/install.ps1 | iex
+        echo %INFO% 2. Or visit: https://docs.astral.sh/uv/getting-started/installation/
         echo %INFO% 3. Restart your terminal and run this script again
         pause
         exit /b 1
     )
 )
 
-:poetry_found
-echo %SUCCESS% Poetry is available!
+:uv_found
+echo %SUCCESS% uv is available!
 
 REM Ensure correct working directory
 if not exist "frontend" (
@@ -181,14 +181,18 @@ REM Install backend dependencies
 echo %INFO% Installing backend dependencies...
 cd backend
 
-poetry run python -c "import uvicorn; import fastapi" >nul 2>&1
+uv run python -c "import uvicorn; import fastapi" >nul 2>&1
 if %errorlevel% equ 0 (
     echo %SUCCESS% Backend dependencies already installed
 ) else (
-    echo %INFO% Installing Python dependencies with Poetry...
-    poetry install
+    echo %INFO% Installing Python dependencies with uv...
+    cd ..
+    uv sync
+    cd backend
+    uv run python -c "import uvicorn; import fastapi" >nul 2>&1
     if %errorlevel% neq 0 (
         echo %ERROR% Failed to install backend dependencies
+        echo %ERROR% Try running: uv sync from the root directory
         pause
         exit /b 1
     ) else (

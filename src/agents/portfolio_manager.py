@@ -1,9 +1,9 @@
 import json
 import time
 from langchain_core.messages import HumanMessage
-from langchain_core.prompts import ChatPromptTemplate
 
 from src.graph.state import AgentState, show_agent_reasoning
+from src.prompts import get_prompt_template
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 from src.utils.progress import progress
@@ -18,7 +18,13 @@ class PortfolioDecision(BaseModel):
 
 
 class PortfolioManagerOutput(BaseModel):
-    decisions: dict[str, PortfolioDecision] = Field(description="Dictionary of ticker to trading decisions")
+    decisions: dict[str, PortfolioDecision] = Field(
+        description="Dictionary of ticker to trading decisions"
+    )
+    report: str | None = Field(
+        default=None,
+        description="Optional Chinese Markdown report: 摘要、各标的/分析师观点汇总、综合结论与操作建议",
+    )
 
 
 ##### Portfolio Management Agent #####
@@ -76,13 +82,15 @@ def portfolio_management_agent(state: AgentState, agent_id: str = "portfolio_man
         agent_id=agent_id,
         state=state,
     )
-    message = HumanMessage(
-        content=json.dumps({ticker: decision.model_dump() for ticker, decision in result.decisions.items()}),
-        name=agent_id,
-    )
+    # Emit both decisions and report so UI/backend can use report without a separate final_report node
+    payload = {
+        "decisions": {ticker: d.model_dump() for ticker, d in result.decisions.items()},
+        "report": result.report or "",
+    }
+    message = HumanMessage(content=json.dumps(payload, ensure_ascii=False), name=agent_id)
 
     if state["metadata"]["show_reasoning"]:
-        show_agent_reasoning({ticker: decision.model_dump() for ticker, decision in result.decisions.items()},
+        show_agent_reasoning({ticker: d.model_dump() for ticker, d in result.decisions.items()},
                              "Portfolio Manager")
 
     progress.update_status(agent_id, None, "Done")
@@ -208,30 +216,7 @@ def generate_trading_decision(
     compact_signals = _compact_signals({t: signals_by_ticker.get(t, {}) for t in tickers_for_llm})
     compact_allowed = {t: allowed_actions_full[t] for t in tickers_for_llm}
 
-    # Minimal prompt template
-    template = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                "You are a portfolio manager.\n"
-                "Inputs per ticker: analyst signals and allowed actions with max qty (already validated).\n"
-                "Pick one allowed action per ticker and a quantity ≤ the max. "
-                "Keep reasoning very concise (max 100 chars). No cash or margin math. Return JSON only."
-            ),
-            (
-                "human",
-                "Signals:\n{signals}\n\n"
-                "Allowed:\n{allowed}\n\n"
-                "Format:\n"
-                "{{\n"
-                '  "decisions": {{\n'
-                '    "TICKER": {{"action":"...","quantity":int,"confidence":int,"reasoning":"..."}}\n'
-                "  }}\n"
-                "}}"
-            ),
-        ]
-    )
-
+    template = get_prompt_template("hedge-fund/portfolio_manager")
     prompt_data = {
         "signals": json.dumps(compact_signals, separators=(",", ":"), ensure_ascii=False),
         "allowed": json.dumps(compact_allowed, separators=(",", ":"), ensure_ascii=False),
@@ -248,15 +233,19 @@ def generate_trading_decision(
             )
         return PortfolioManagerOutput(decisions=decisions)
 
+    def create_default_with_report():
+        out = create_default_portfolio_output()
+        return PortfolioManagerOutput(decisions=out.decisions, report=None)
+
     llm_out = call_llm(
         prompt=prompt,
         pydantic_model=PortfolioManagerOutput,
         agent_name=agent_id,
         state=state,
-        default_factory=create_default_portfolio_output,
+        default_factory=create_default_with_report,
     )
 
     # Merge prefilled holds with LLM results
     merged = dict(prefilled_decisions)
     merged.update(llm_out.decisions)
-    return PortfolioManagerOutput(decisions=merged)
+    return PortfolioManagerOutput(decisions=merged, report=llm_out.report)

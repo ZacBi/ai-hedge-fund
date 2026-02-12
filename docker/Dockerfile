@@ -5,15 +5,14 @@ WORKDIR /app
 # Set PYTHONPATH to include the app directory
 ENV PYTHONPATH=/app
 
-# Install Poetry
-RUN pip install poetry==1.7.1
+# Install uv
+RUN pip install uv
 
 # Copy only dependency files first for better caching
-COPY pyproject.toml poetry.lock* /app/
+COPY pyproject.toml uv.lock /app/
 
-# Configure Poetry to not use a virtual environment
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi
+# Install dependencies using uv
+RUN uv sync --frozen
 
 # Copy rest of the source code
 COPY . /app/

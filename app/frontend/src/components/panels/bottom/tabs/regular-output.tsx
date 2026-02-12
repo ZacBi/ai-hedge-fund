@@ -45,6 +45,25 @@ function ProgressSection({ sortedAgents }: { sortedAgents: [string, any][] }) {
   );
 }
 
+// Report Section (Chinese Deep Research-style)
+function ReportSection({ report }: { report: string }) {
+  if (!report) return null;
+  return (
+    <Card className="bg-transparent mb-4">
+      <CardHeader>
+        <CardTitle className="text-lg">深度研报</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="max-h-[60vh] overflow-y-auto rounded-md border bg-muted/30 p-4">
+          <pre className="whitespace-pre-wrap font-sans text-sm text-foreground">
+            {report}
+          </pre>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Summary Section Component
 function SummarySection({ outputData }: { outputData: any }) {
   if (!outputData) return null;
@@ -223,6 +242,7 @@ export function RegularOutput({
   return (
     <>
       <ProgressSection sortedAgents={sortedAgents} />
+      {outputData?.report && <ReportSection report={outputData.report} />}
       <SummarySection outputData={outputData} />
       <AnalysisResultsSection outputData={outputData} />
     </>

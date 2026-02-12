@@ -70,11 +70,18 @@ def call_llm(
                 return result
 
         except Exception as e:
+            err_msg = str(e)
             if agent_name:
                 progress.update_status(agent_name, None, f"Error - retry {attempt + 1}/{max_retries}")
 
             if attempt == max_retries - 1:
-                print(f"Error in LLM call after {max_retries} attempts: {e}")
+                if "location is not supported" in err_msg and "google" in err_msg.lower():
+                    print(
+                        "Error in LLM call: Google Gemini API 在你当前地区不可用。"
+                        "请改用应用中的「Gemini 3 Pro (OpenRouter)」模型（需配置 OPENROUTER_API_KEY）。"
+                    )
+                else:
+                    print(f"Error in LLM call after {max_retries} attempts: {e}")
                 # Use default_factory if provided, otherwise create a basic default
                 if default_factory:
                     return default_factory()

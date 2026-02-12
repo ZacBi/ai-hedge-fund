@@ -19,8 +19,17 @@ def print_trading_output(result: dict) -> None:
     Print formatted trading results with colored tables for multiple tickers.
 
     Args:
-        result (dict): Dictionary containing decisions and analyst signals for multiple tickers
+        result (dict): Dictionary containing decisions, analyst signals, and optional report
     """
+    # 若有中文深度研报，优先打印
+    report = result.get("report")
+    if report:
+        print(f"\n{Fore.CYAN}{Style.BRIGHT}{'=' * 60}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{Style.BRIGHT}  深度研报 (Deep Research){Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{Style.BRIGHT}{'=' * 60}{Style.RESET_ALL}\n")
+        print(report)
+        print(f"\n{Fore.CYAN}{'=' * 60}{Style.RESET_ALL}\n")
+
     decisions = result.get("decisions")
     if not decisions:
         print(f"{Fore.RED}No trading decisions available{Style.RESET_ALL}")

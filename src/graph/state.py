@@ -1,3 +1,4 @@
+from typing import Any
 from typing_extensions import Annotated, Sequence, TypedDict
 
 import operator
@@ -7,15 +8,17 @@ from langchain_core.messages import BaseMessage
 import json
 
 
-def merge_dicts(a: dict[str, any], b: dict[str, any]) -> dict[str, any]:
+def merge_dicts(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
     return {**a, **b}
 
 
 # Define agent state
+# data typically contains: tickers, portfolio, start_date, end_date, analyst_signals,
+# company_context (ticker -> {name, sector, industry, ...}), and optionally current_prices
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
-    data: Annotated[dict[str, any], merge_dicts]
-    metadata: Annotated[dict[str, any], merge_dicts]
+    data: Annotated[dict[str, Any], merge_dicts]
+    metadata: Annotated[dict[str, Any], merge_dicts]
 
 
 def show_agent_reasoning(output, agent_name):

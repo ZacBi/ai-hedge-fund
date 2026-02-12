@@ -1,6 +1,6 @@
 from src.graph.state import AgentState, show_agent_reasoning
+from src.prompts import get_prompt_template
 from src.tools.api import get_financial_metrics, get_market_cap, search_line_items
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 import json
@@ -310,39 +310,7 @@ def generate_pabrai_output(
     agent_id: str,
 ) -> MohnishPabraiSignal:
     """Generate Pabrai-style decision focusing on low risk, high uncertainty bets and cloning."""
-    template = ChatPromptTemplate.from_messages([
-        (
-          "system",
-          """You are Mohnish Pabrai. Apply my value investing philosophy:
-
-          - Heads I win; tails I don't lose much: prioritize downside protection first.
-          - Buy businesses with simple, understandable models and durable moats.
-          - Demand high free cash flow yields and low leverage; prefer asset-light models.
-          - Look for situations where intrinsic value is rising and price is significantly lower.
-          - Favor cloning great investors' ideas and checklists over novelty.
-          - Seek potential to double capital in 2-3 years with low risk.
-          - Avoid leverage, complexity, and fragile balance sheets.
-
-            Provide candid, checklist-driven reasoning, with emphasis on capital preservation and expected mispricing.
-            """,
-        ),
-        (
-          "human",
-          """Analyze {ticker} using the provided data.
-
-          DATA:
-          {analysis_data}
-
-          Return EXACTLY this JSON:
-          {{
-            "signal": "bullish" | "bearish" | "neutral",
-            "confidence": float (0-100),
-            "reasoning": "string with Pabrai-style analysis focusing on downside protection, FCF yield, and doubling potential"
-          }}
-          """,
-        ),
-    ])
-
+    template = get_prompt_template("hedge-fund/mohnish_pabrai")
     prompt = template.invoke({
         "analysis_data": json.dumps(analysis_data, indent=2),
         "ticker": ticker,

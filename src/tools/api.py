@@ -6,6 +6,7 @@ import time
 
 from src.data.cache import get_cache
 from src.data.models import (
+    CompanyFacts,
     CompanyNews,
     CompanyNewsResponse,
     FinancialMetrics,
@@ -304,6 +305,24 @@ def get_company_news(
     return all_news
 
 
+def get_company_facts(ticker: str, api_key: str = None) -> CompanyFacts | None:
+    """Fetch company facts (name, sector, industry, etc.) from the API."""
+    headers = {}
+    financial_api_key = api_key or os.environ.get("FINANCIAL_DATASETS_API_KEY")
+    if financial_api_key:
+        headers["X-API-KEY"] = financial_api_key
+    url = f"https://api.financialdatasets.ai/company/facts/?ticker={ticker}"
+    response = _make_api_request(url, headers)
+    if response.status_code != 200:
+        return None
+    try:
+        data = response.json()
+        response_model = CompanyFactsResponse(**data)
+        return response_model.company_facts
+    except Exception:
+        return None
+
+
 def get_market_cap(
     ticker: str,
     end_date: str,
@@ -312,21 +331,9 @@ def get_market_cap(
     """Fetch market cap from the API."""
     # Check if end_date is today
     if end_date == datetime.datetime.now().strftime("%Y-%m-%d"):
-        # Get the market cap from company facts API
-        headers = {}
-        financial_api_key = api_key or os.environ.get("FINANCIAL_DATASETS_API_KEY")
-        if financial_api_key:
-            headers["X-API-KEY"] = financial_api_key
-
-        url = f"https://api.financialdatasets.ai/company/facts/?ticker={ticker}"
-        response = _make_api_request(url, headers)
-        if response.status_code != 200:
-            print(f"Error fetching company facts: {ticker} - {response.status_code}")
-            return None
-
-        data = response.json()
-        response_model = CompanyFactsResponse(**data)
-        return response_model.company_facts.market_cap
+        facts = get_company_facts(ticker, api_key=api_key)
+        if facts is not None:
+            return facts.market_cap
 
     financial_metrics = get_financial_metrics(ticker, end_date, api_key=api_key)
     if not financial_metrics:

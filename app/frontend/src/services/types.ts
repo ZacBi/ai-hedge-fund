@@ -4,6 +4,9 @@ export enum ModelProvider {
   ANTHROPIC = 'Anthropic',
   GROQ = 'Groq',
   OLLAMA = 'Ollama',
+  OPENROUTER = 'OpenRouter',
+  IDEALAB = 'Idealab',
+  DASHSCOPE = 'Dashscope',
 }
 
 export interface AgentModelConfig {

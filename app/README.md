@@ -108,24 +108,22 @@ GROQ_API_KEY=your-groq-api-key
 FINANCIAL_DATASETS_API_KEY=your-financial-datasets-api-key
 ```
 
-4. Install Poetry (if not already installed):
+4. Install uv (if not already installed):
 ```bash
-curl -sSL https://install.python-poetry.org | python3 -
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 5. Install root project dependencies:
 ```bash
 # From the root directory
-poetry install
+uv sync
 ```
 
 6. Install backend app dependencies:
 ```bash
 # Navigate to the backend directory
 cd app/backend
-pip install -r requirements.txt  # If there's a requirements.txt file
-# OR
-poetry install  # If there's a pyproject.toml in the backend directory
+# Dependencies are managed by the root uv project
 ```
 
 7. Install frontend app dependencies:
@@ -140,7 +138,7 @@ npm install  # or pnpm install or yarn install
 ```bash
 # In one terminal, from the backend directory
 cd app/backend
-poetry run uvicorn main:app --reload
+uv run uvicorn main:app --reload
 ```
 
 2. Start the frontend application:
@@ -185,23 +183,20 @@ Command not found: uvicorn
 ```
 
 **Solution:**
-1. **Clean Poetry environment:**
+1. **Clean uv environment:**
    ```bash
-   cd app/backend
-   poetry env remove --all
-   poetry install
+   uv sync --refresh
    ```
 
 2. **Or force reinstall:**
    ```bash
-   cd app/backend
-   poetry install --sync
+   uv sync --force
    ```
 
 3. **Verify installation:**
    ```bash
    cd app/backend
-   poetry run python -c "import uvicorn; import fastapi"
+   uv run python -c "import uvicorn; import fastapi"
    ```
 
 #### Python Version Issues

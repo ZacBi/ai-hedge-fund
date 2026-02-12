@@ -1,6 +1,6 @@
 from src.graph.state import AgentState, show_agent_reasoning
+from src.prompts import get_prompt_template
 from src.tools.api import get_financial_metrics, get_market_cap, search_line_items, get_insider_trades, get_company_news
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 import json
@@ -821,23 +821,7 @@ def generate_munger_output(
     confidence_hint: int,
 ) -> CharlieMungerSignal:
     facts_bundle = make_munger_facts_bundle(analysis_data)
-    template = ChatPromptTemplate.from_messages([
-        ("system",
-         "You are Charlie Munger. Decide bullish, bearish, or neutral using only the facts. "
-         "Return JSON only. Keep reasoning under 120 characters. "
-         "Use the provided confidence exactly; do not change it."),
-        ("human",
-         "Ticker: {ticker}\n"
-         "Facts:\n{facts}\n"
-         "Confidence: {confidence}\n"
-         "Return exactly:\n"
-         "{{\n"  # escaped {
-         '  "signal": "bullish" | "bearish" | "neutral",\n'
-         f'  "confidence": {confidence_hint},\n'
-         '  "reasoning": "short justification"\n'
-         "}}")  # escaped }
-    ])
-
+    template = get_prompt_template("hedge-fund/charlie_munger")
     prompt = template.invoke({
         "ticker": ticker,
         "facts": json.dumps(facts_bundle, separators=(",", ":"), ensure_ascii=False),

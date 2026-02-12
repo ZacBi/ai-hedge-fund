@@ -1,48 +1,48 @@
 [
   {
-    "display_name": "Grok 4",
-    "model_name": "grok-4-0709",
-    "provider": "xAI"
+    "display_name": "GPT-5.2 (OpenRouter)",
+    "model_name": "openai/gpt-5.2",
+    "provider": "OpenRouter"
   },
   {
-    "display_name": "GPT-5.2",
-    "model_name": "gpt-5.2",
-    "provider": "OpenAI"
+    "display_name": "GPT-4.1 (OpenRouter)",
+    "model_name": "openai/gpt-4.1",
+    "provider": "OpenRouter"
   },
   {
-    "display_name": "GPT-4.1",
-    "model_name": "gpt-4.1",
-    "provider": "OpenAI"
+    "display_name": "Claude Sonnet 4.5 (OpenRouter)",
+    "model_name": "anthropic/claude-sonnet-4-5-20250929",
+    "provider": "OpenRouter"
   },
   {
-    "display_name": "Claude Sonnet 4.5",
-    "model_name": "claude-sonnet-4-5-20250929",
-    "provider": "Anthropic"
+    "display_name": "Claude Haiku 4.5 (OpenRouter)",
+    "model_name": "anthropic/claude-haiku-4-5-20251001",
+    "provider": "OpenRouter"
   },
   {
-    "display_name": "Claude Haiku 4.5",
-    "model_name": "claude-haiku-4-5-20251001",
-    "provider": "Anthropic"
+    "display_name": "Claude Opus 4.5 (OpenRouter)",
+    "model_name": "anthropic/claude-opus-4-5-20251101",
+    "provider": "OpenRouter"
   },
   {
-    "display_name": "Claude Opus 4.5",
-    "model_name": "claude-opus-4-5-20251101",
-    "provider": "Anthropic"
+    "display_name": "DeepSeek R1 (OpenRouter)",
+    "model_name": "deepseek/deepseek-reasoner",
+    "provider": "OpenRouter"
   },
   {
-    "display_name": "DeepSeek R1",
-    "model_name": "deepseek-reasoner",
-    "provider": "DeepSeek"
+    "display_name": "DeepSeek V3 (OpenRouter)",
+    "model_name": "deepseek/deepseek-chat",
+    "provider": "OpenRouter"
   },
   {
-    "display_name": "DeepSeek V3",
-    "model_name": "deepseek-chat",
-    "provider": "DeepSeek"
+    "display_name": "Gemini 3 Pro (OpenRouter)",
+    "model_name": "google/gemini-3-pro-preview",
+    "provider": "OpenRouter"
   },
   {
-    "display_name": "Gemini 3 Pro",
-    "model_name": "gemini-3-pro-preview",
-    "provider": "Google"
+    "display_name": "Grok 4 (OpenRouter)",
+    "model_name": "xai/grok-4-0709",
+    "provider": "OpenRouter"
   },
   {
     "display_name": "GLM-4.5 Air",
@@ -60,13 +60,33 @@
     "provider": "OpenRouter"
   },
   {
-    "display_name": "GigaChat-2-Max",
-    "model_name": "GigaChat-2-Max",
-    "provider": "GigaChat"
+    "display_name": "Gemini 3 Pro",
+    "model_name": "gemini-3-pro-preview",
+    "provider": "IDEALAB"
   },
   {
-    "display_name": "Azure Open AI Deployment",
-    "model_name": "",
-    "provider": "Azure OpenAI"
-  }
+    "display_name": "通义千问 Plus",
+    "model_name": "qwen-plus",
+    "provider": "Dashscope"
+  },
+  {
+    "display_name": "通义千问 Flash",
+    "model_name": "qwen-flash",
+    "provider": "Dashscope"
+  },
+  {
+    "display_name": "通义千问 Max",
+    "model_name": "qwen3-max-2026-01-23",
+    "provider": "Dashscope"
+  },
+  {
+    "display_name": "DeepSeek V3.2",
+    "model_name": "deepseek-v3.2",
+    "provider": "Dashscope"
+  },
+    {
+      "display_name": "GLM-4.7",
+      "model_name": "glm-4.7",
+      "provider": "Dashscope"
+    }
 ]

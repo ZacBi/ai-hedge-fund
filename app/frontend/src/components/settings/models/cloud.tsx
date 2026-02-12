@@ -21,16 +21,19 @@ interface ModelProvider {
   }>;
 }
 
+const API_BASE = 'http://localhost:8000';
+
 export function CloudModels({ className }: CloudModelsProps) {
   const [providers, setProviders] = useState<ModelProvider[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshingOpenRouter, setRefreshingOpenRouter] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchProviders = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:8000/language-models/providers');
+      const response = await fetch(`${API_BASE}/language-models/providers`);
       if (response.ok) {
         const data = await response.json();
         setProviders(data.providers);
@@ -43,6 +46,24 @@ export function CloudModels({ className }: CloudModelsProps) {
       setError('Failed to connect to backend service');
     }
     setLoading(false);
+  };
+
+  const refreshFromOpenRouter = async () => {
+    setRefreshingOpenRouter(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE}/language-models/refresh-openrouter`, { method: 'POST' });
+      if (response.ok) {
+        await fetchProviders();
+      } else {
+        const err = await response.json().catch(() => ({ detail: 'Refresh failed' }));
+        setError(err.detail || 'Refresh failed');
+      }
+    } catch (e) {
+      console.error('Refresh OpenRouter failed:', e);
+      setError('Failed to refresh from OpenRouter');
+    }
+    setRefreshingOpenRouter(false);
   };
 
   useEffect(() => {
@@ -74,11 +95,22 @@ export function CloudModels({ className }: CloudModelsProps) {
 
       <div className="space-y-2">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-primary
-          ">Available Models</h3>
-          <span className="text-xs text-muted-foreground">
-            {allModels.length} models from {providers.length} providers
-          </span>
+          <h3 className="font-medium text-primary">Available Models</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {allModels.length} models from {providers.length} providers
+            </span>
+            <button
+              type="button"
+              onClick={refreshFromOpenRouter}
+              disabled={loading || refreshingOpenRouter}
+              className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 disabled:opacity-50"
+              title="Fetch latest model list from OpenRouter and update"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", refreshingOpenRouter && "animate-spin")} />
+              Refresh OpenRouter
+            </button>
+          </div>
         </div>
 
         {loading ? (

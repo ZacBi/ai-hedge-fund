@@ -12,7 +12,7 @@ from src.tools.api import (
     get_financial_metrics,
     get_insider_trades,
 )
-from app.backend.services.graph import run_graph_async, parse_hedge_fund_response
+from app.backend.services.graph import run_graph_async, parse_portfolio_manager_content
 from app.backend.services.portfolio import create_portfolio
 
 class BacktestService:
@@ -374,7 +374,7 @@ class BacktestService:
                 
                 # Parse the decisions from the graph result
                 if result and result.get("messages"):
-                    decisions = parse_hedge_fund_response(result["messages"][-1].content)
+                    decisions, _ = parse_portfolio_manager_content(result["messages"][-1].content)
                     analyst_signals = result.get("data", {}).get("analyst_signals", {})
                 else:
                     decisions = {}

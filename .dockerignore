@@ -2,12 +2,13 @@
 .git
 .gitignore
 
-# Poetry
-.venv
+# uv and Python
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.uv/
+.uv-cache/
 
 # Environment
 .env

@@ -5,7 +5,7 @@ from typing_extensions import Literal
 from pydantic import BaseModel
 
 from src.graph.state import AgentState, show_agent_reasoning
-from langchain_core.prompts import ChatPromptTemplate
+from src.prompts import get_prompt_template
 from langchain_core.messages import HumanMessage
 
 from src.tools.api import (
@@ -370,37 +370,7 @@ def generate_damodaran_output(
       • Emphasize risk, growth, and cash-flow assumptions
       • Cite cost of capital, implied MOS, and valuation cross-checks
     """
-    template = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                """You are Aswath Damodaran, Professor of Finance at NYU Stern.
-                Use your valuation framework to issue trading signals on US equities.
-
-                Speak with your usual clear, data-driven tone:
-                  ◦ Start with the company "story" (qualitatively)
-                  ◦ Connect that story to key numerical drivers: revenue growth, margins, reinvestment, risk
-                  ◦ Conclude with value: your FCFF DCF estimate, margin of safety, and relative valuation sanity checks
-                  ◦ Highlight major uncertainties and how they affect value
-                Return ONLY the JSON specified below.""",
-            ),
-            (
-                "human",
-                """Ticker: {ticker}
-
-                Analysis data:
-                {analysis_data}
-
-                Respond EXACTLY in this JSON schema:
-                {{
-                  "signal": "bullish" | "bearish" | "neutral",
-                  "confidence": float (0-100),
-                  "reasoning": "string"
-                }}""",
-            ),
-        ]
-    )
-
+    template = get_prompt_template("hedge-fund/aswath_damodaran")
     prompt = template.invoke({"analysis_data": json.dumps(analysis_data, indent=2), "ticker": ticker})
 
     def default_signal():

@@ -27,6 +27,8 @@ export interface AgentNodeData {
 export interface OutputNodeData {
   decisions: Record<string, any>;
   analyst_signals: Record<string, any>;
+  /** 中文深度研报（Markdown，类 Deep Research） */
+  report?: string;
   // Backtest-specific fields
   performance_metrics?: {
     sharpe_ratio?: number;

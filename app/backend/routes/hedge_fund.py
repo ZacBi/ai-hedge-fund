@@ -1,12 +1,23 @@
+import logging
+import asyncio
+
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-import asyncio
 
 from app.backend.database import get_db
+
+logger = logging.getLogger(__name__)
 from app.backend.models.schemas import ErrorResponse, HedgeFundRequest, BacktestRequest, BacktestDayResult, BacktestPerformanceMetrics
 from app.backend.models.events import StartEvent, ProgressUpdateEvent, ErrorEvent, CompleteEvent
-from app.backend.services.graph import create_graph, parse_hedge_fund_response, run_graph_async
+from app.backend.services.graph import (
+    create_graph,
+    parse_portfolio_manager_content,
+    run_graph_async,
+)
+from src.utils.langfuse_callback import langfuse_flush
+from src.utils.report import generate_final_report
+from src.utils.langsmith_tracing import langsmith_flush
 from app.backend.services.portfolio import create_portfolio
 from app.backend.services.backtest_service import BacktestService
 from app.backend.services.api_key_service import ApiKeyService
@@ -32,6 +43,14 @@ async def run(request_data: HedgeFundRequest, request: Request, db: Session = De
 
         # Create the portfolio
         portfolio = create_portfolio(request_data.initial_cash, request_data.margin_requirement, request_data.tickers, request_data.portfolio_positions)
+
+        logger.info(
+            "Stock Input / Run: tickers=%s start_date=%s end_date=%s agent_count=%s",
+            request_data.tickers,
+            getattr(request_data, "start_date", None),
+            getattr(request_data, "end_date", None),
+            len([n for n in request_data.graph_nodes if getattr(n, "id", None)]),
+        )
 
         # Construct agent graph using the React Flow graph structure
         graph = create_graph(
@@ -122,16 +141,42 @@ async def run(request_data: HedgeFundRequest, request: Request, db: Session = De
                     print("Task was cancelled")
                     return
 
+                # 确保可观测 trace 在响应返回前上报
+                langfuse_flush()
+                langsmith_flush()
+
                 if not result or not result.get("messages"):
                     yield ErrorEvent(message="Failed to generate hedge fund decisions").to_sse()
                     return
 
-                # Send the final result
+                last_content = result.get("messages", [])[-1].content if result.get("messages") else ""
+                decisions, report = parse_portfolio_manager_content(last_content)
+                decisions = decisions or {}
+                analyst_signals = result.get("data", {}).get("analyst_signals", {})
+                current_prices = result.get("data", {}).get("current_prices", {})
+
+                # 研报由 portfolio_manager 输出；若无则回退到 generate_final_report
+                if not (report and report.strip()):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        report = await loop.run_in_executor(
+                            None,
+                            lambda: generate_final_report(
+                                decisions=decisions,
+                                analyst_signals=analyst_signals,
+                                current_prices=current_prices,
+                                state=result,
+                            ),
+                        )
+                    except Exception:
+                        report = ""
+
                 final_data = CompleteEvent(
                     data={
-                        "decisions": parse_hedge_fund_response(result.get("messages", [])[-1].content),
-                        "analyst_signals": result.get("data", {}).get("analyst_signals", {}),
-                        "current_prices": result.get("data", {}).get("current_prices", {}),
+                        "decisions": decisions,
+                        "analyst_signals": analyst_signals,
+                        "current_prices": current_prices,
+                        "report": report,
                     }
                 )
                 yield final_data.to_sse()

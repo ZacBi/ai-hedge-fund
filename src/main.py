@@ -12,6 +12,10 @@ from src.utils.display import print_trading_output
 from src.utils.analysts import ANALYST_ORDER, get_analyst_nodes
 from src.utils.progress import progress
 from src.utils.visualize import save_graph_as_png
+from src.utils.langfuse_callback import get_langfuse_callbacks
+from src.utils.langsmith_tracing import langsmith_flush
+from src.utils.report import generate_final_report
+from src.utils.company_context import build_company_context
 from src.cli.input import (
     parse_cli_inputs,
 )
@@ -42,6 +46,16 @@ def parse_hedge_fund_response(response):
         return None
 
 
+def parse_portfolio_manager_content(content: str) -> tuple[dict, str]:
+    """Parse portfolio manager output. Returns (decisions, report)."""
+    parsed = parse_hedge_fund_response(content)
+    if not parsed or not isinstance(parsed, dict):
+        return {}, ""
+    if "decisions" in parsed:
+        return parsed.get("decisions", {}), (parsed.get("report") or "")
+    return parsed, ""
+
+
 ##### Run the Hedge Fund #####
 def run_hedge_fund(
     tickers: list[str],
@@ -61,12 +75,25 @@ def run_hedge_fund(
         workflow = create_workflow(selected_analysts if selected_analysts else None)
         agent = workflow.compile()
 
+        callbacks = get_langfuse_callbacks(tags=["hedge-fund", "cli"])
+        config = {"callbacks": callbacks} if callbacks else {}
+        company_context = build_company_context(tickers, api_key=None)
+        company_lines = []
+        for t in tickers:
+            ctx = company_context.get(t, {})
+            name = ctx.get("name") or t
+            sector = ctx.get("sector") or "—"
+            industry = ctx.get("industry") or "—"
+            company_lines.append(f"  • {t}: {name} (Sector: {sector}, Industry: {industry})")
+        companies_summary = "\n".join(company_lines) if company_lines else "  (no company details)"
+        initial_content = (
+            "Make trading decisions based on the provided data.\n\n"
+            "Companies under analysis:\n" + companies_summary
+        )
         final_state = agent.invoke(
             {
                 "messages": [
-                    HumanMessage(
-                        content="Make trading decisions based on the provided data.",
-                    )
+                    HumanMessage(content=initial_content),
                 ],
                 "data": {
                     "tickers": tickers,
@@ -74,6 +101,7 @@ def run_hedge_fund(
                     "start_date": start_date,
                     "end_date": end_date,
                     "analyst_signals": {},
+                    "company_context": company_context,
                 },
                 "metadata": {
                     "show_reasoning": show_reasoning,
@@ -81,11 +109,25 @@ def run_hedge_fund(
                     "model_provider": model_provider,
                 },
             },
+            config=config,
         )
-
+        langsmith_flush()
+        last_content = final_state["messages"][-1].content
+        decisions, report = parse_portfolio_manager_content(last_content)
+        decisions = decisions or {}
+        analyst_signals = final_state["data"]["analyst_signals"]
+        current_prices = final_state["data"].get("current_prices", {})
+        if not (report and report.strip()):
+            report = generate_final_report(
+                decisions=decisions,
+                analyst_signals=analyst_signals,
+                current_prices=current_prices,
+                state=final_state,
+            )
         return {
-            "decisions": parse_hedge_fund_response(final_state["messages"][-1].content),
-            "analyst_signals": final_state["data"]["analyst_signals"],
+            "decisions": decisions,
+            "analyst_signals": analyst_signals,
+            "report": report,
         }
     finally:
         # Stop progress tracking

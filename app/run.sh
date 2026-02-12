@@ -87,31 +87,31 @@ check_prerequisites() {
         missing_deps+=("Python 3 (https://python.org/)")
     fi
     
-    # Check for Poetry - offer to install if missing
-    if ! command_exists poetry; then
-        print_warning "Poetry is not installed."
-        print_status "Poetry is required to manage Python dependencies for this project."
+    # Check for uv - offer to install if missing
+    if ! command_exists uv; then
+        print_warning "uv is not installed."
+        print_status "uv is required to manage Python dependencies for this project."
         echo ""
-        read -p "Would you like to install Poetry automatically? (y/N): " -n 1 -r
+        read -p "Would you like to install uv automatically? (y/N): " -n 1 -r
         echo ""
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            print_status "Installing Poetry..."
-            if python3 -m pip install poetry; then
-                print_success "Poetry installed successfully!"
+            print_status "Installing uv..."
+            if curl -LsSf https://astral.sh/uv/install.sh | sh; then
+                print_success "uv installed successfully!"
                 print_status "Refreshing environment..."
                 # Try to refresh the PATH for this session
-                export PATH="$HOME/.local/bin:$PATH"
-                if ! command_exists poetry; then
-                    print_warning "Poetry may not be in PATH. You might need to restart your terminal."
+                export PATH="$HOME/.cargo/bin:$PATH"
+                if ! command_exists uv; then
+                    print_warning "uv may not be in PATH. You might need to restart your terminal."
                     print_warning "Alternatively, try: source ~/.bashrc or source ~/.zshrc"
                 fi
             else
-                print_error "Failed to install Poetry automatically."
-                print_error "Please install Poetry manually from https://python-poetry.org/"
+                print_error "Failed to install uv automatically."
+                print_error "Please install uv manually from https://docs.astral.sh/uv/getting-started/installation/"
                 exit 1
             fi
         else
-            missing_deps+=("Poetry (https://python-poetry.org/)")
+            missing_deps+=("uv (https://docs.astral.sh/uv/getting-started/installation/)")
         fi
     fi
     
@@ -176,16 +176,19 @@ install_backend() {
     cd backend
     
     # Check if dependencies are actually installed and working
-    if poetry run python -c "import uvicorn; import fastapi" >/dev/null 2>&1; then
+    if uv run python -c "import uvicorn; import fastapi" >/dev/null 2>&1; then
         print_success "Backend dependencies already installed!"
     else
-        print_status "Installing Python dependencies with Poetry..."
-        poetry install
-        if poetry run python -c "import uvicorn; import fastapi" >/dev/null 2>&1; then
+        print_status "Installing Python dependencies with uv..."
+        # Run uv sync from the root directory
+        cd ..
+        uv sync
+        cd backend
+        if uv run python -c "import uvicorn; import fastapi" >/dev/null 2>&1; then
             print_success "Backend dependencies installed!"
         else
             print_error "Failed to install backend dependencies properly"
-            print_error "Try running: cd backend && poetry install --sync"
+            print_error "Try running: uv sync from the root directory"
             exit 1
         fi
     fi
